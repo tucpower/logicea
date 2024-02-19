@@ -1,14 +1,12 @@
 package com.logicea.cards.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
-import java.util.Set;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -32,6 +30,8 @@ public class User {
     @NotBlank
     private String password;
 
-    @OneToMany(mappedBy="user")
-    private Set<Card> cards;
+    @ToString.Exclude
+    @OneToMany(mappedBy="user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Card> cards;
 }
