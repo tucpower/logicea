@@ -31,10 +31,13 @@ public class UserController {
 
     @PostMapping(value = "/register")
     public ResponseEntity<?> register(@RequestBody RegisterUserDTO registerUserDTO) {
+
+        // Application users are identified uniquely by their mail address
         if(userService.existsByEmail(registerUserDTO.getEmail())) {
             return new ResponseEntity<>("User email is taken!", HttpStatus.BAD_REQUEST);
         }
 
+        // ROLE VALIDATION => must be one of "Admin" or "Member"
         if(!registerUserDTO.getRole().equals(ApplicationConstants.ROLE_ADMIN) &&
                 !registerUserDTO.getRole().equals(ApplicationConstants.ROLE_MEMBER)) {
             return new ResponseEntity<>("Invalid role for user!", HttpStatus.BAD_REQUEST);

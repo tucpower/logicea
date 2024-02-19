@@ -6,7 +6,6 @@ import com.logicea.cards.model.dto.card.UpdateCardDTO;
 import com.logicea.cards.model.entity.Card;
 import com.logicea.cards.model.entity.User;
 import com.logicea.cards.model.exception.ResourceNotFoundException;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;

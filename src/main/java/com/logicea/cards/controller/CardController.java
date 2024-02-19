@@ -9,7 +9,6 @@ import com.logicea.cards.model.entity.User;
 import com.logicea.cards.model.exception.ResourceNotFoundException;
 import com.logicea.cards.service.CardService;
 import com.logicea.cards.service.UserService;
-import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -42,16 +41,14 @@ public class CardController {
             Pageable pageable) {
         List<CardDTO> cards = new ArrayList<>();
 
-        SimpleGrantedAuthority adminRole = new SimpleGrantedAuthority(ApplicationConstants.ROLE_ADMIN);
-        SimpleGrantedAuthority memberRole = new SimpleGrantedAuthority(ApplicationConstants.ROLE_MEMBER);
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         // IF ADMIN => RETURN ALL CARDS
         // IF MEMBER => RETURN CARDS OWNED BY THE MEMBER
-        if(authentication.getAuthorities().contains(adminRole)) {
+        if(authentication.getAuthorities().contains(ApplicationConstants.ADMIN_GRANTED_AUTHORITY)) {
             cards = cardService.findAllUsingFilters(name, color, status, dateOfCreation, pageable);
 
-        } else if(authentication.getAuthorities().contains(memberRole)) {
+        } else if(authentication.getAuthorities().contains(ApplicationConstants.MEMBER_GRANTED_AUTHORITY)) {
             User user = userService.findByEmail(authentication.getName());
             cards = cardService.findAllUsingFiltersByUser(name, color, status, dateOfCreation, user, pageable);
         }
@@ -63,7 +60,9 @@ public class CardController {
     public ResponseEntity<?> findByName(@PathVariable String name) {
 
         CardDTO cardDTO = cardService.findByName(name);
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         // IF MEMBER OWNS THE CARD OR WE HAVE AN ADMIN => RETURN THE CARD
         if(authentication.getName().equals(cardDTO.getUser())
                 || authentication.getAuthorities().contains(new SimpleGrantedAuthority(ApplicationConstants.ROLE_ADMIN))) {
@@ -76,10 +75,12 @@ public class CardController {
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CreateCardDTO createCardDTO) {
 
+        // Name is mandatory
         if(createCardDTO.getName() == null || createCardDTO.getName().isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Card name is mandatory");
         }
 
+        // Color, if provided, should conform to a “6 alphanumeric characters prefixed with a #“ format
         if(createCardDTO.getColor() != null && !createCardDTO.getColor().isEmpty()) {
             String COLOR_REGEX = "^#([a-fA-F0-9]{6})$";
             if (!Pattern.matches(COLOR_REGEX, createCardDTO.getColor())) {
@@ -88,6 +89,8 @@ public class CardController {
         }
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Set the owner of the card from the authenticated user
         createCardDTO.setUser(authentication.getName());
 
         return ResponseEntity.ok(cardService.createCard(createCardDTO));
@@ -97,8 +100,10 @@ public class CardController {
     public ResponseEntity<?> updateById(@PathVariable int id, @RequestBody UpdateCardDTO updateCardDTO) {
 
         Card card = cardService.findById(id);
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        // IF MEMBER OWNS THE CARD OR WE HAVE AN ADMIN
+
+        // IF MEMBER OWNS THE CARD OR WE HAVE AN ADMIN => ALLOW EDITING
         if(authentication.getName().equals(card.getUser().getEmail())
                 || authentication.getAuthorities().contains(new SimpleGrantedAuthority(ApplicationConstants.ROLE_ADMIN))) {
 
@@ -128,13 +133,18 @@ public class CardController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteById(@PathVariable int id) {
+
         try {
             Card card = cardService.findById(id);
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            // IF MEMBER OWNS THE CARD OR WE HAVE AN ADMIN
+
+            // IF MEMBER OWNS THE CARD OR WE HAVE AN ADMIN => ALLOW DELETION
             if(authentication.getName().equals(card.getUser().getEmail())
                     || authentication.getAuthorities().contains(new SimpleGrantedAuthority(ApplicationConstants.ROLE_ADMIN))) {
+
                 cardService.deleteById(id);
+
                 return ResponseEntity.ok("Card was deleted successfully");
             }
         } catch (ResourceNotFoundException ex) {
